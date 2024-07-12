@@ -1,0 +1,22 @@
+name: Workflow Cancel
+description: Cancels newly created workflows if there is already one running
+branding:
+  icon: x
+  color: red
+
+inputs:
+  github-token:
+    description: 'A personal access token or the github token with read-access for actions. If none is provided it will use the default github token.'
+    default: ${{ github.token }}
+    required: false
+  workflow-id:
+    description: 'The workflow id that this job should monitor. You can also use a filename like "main.yml".'
+    required: true
+  results-per-page:
+    description: 'The number of workflow runs to retrieve per page.'
+    default: '10'
+    required: false
+
+runs:
+  using: node20
+  main: './dist/index.js'
