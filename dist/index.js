@@ -31070,6 +31070,17 @@ module.exports = parseParams
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
@@ -31079,50 +31090,83 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
 "use strict";
-var exports = __webpack_exports__;
+// ESM COMPAT FLAG
+__nccwpck_require__.r(__webpack_exports__);
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core_1 = __nccwpck_require__(2186);
-const github_1 = __nccwpck_require__(5438);
-async function run() {
+// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
+var core = __nccwpck_require__(2186);
+// EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
+var github = __nccwpck_require__(5438);
+;// CONCATENATED MODULE: ./src/github.ts
+
+const fetchWorkflowRuns = async (token, workflowId, perPage) => {
+    const octokit = (0,github.getOctokit)(token);
+    const { owner, repo } = github.context.repo;
+    const response = await octokit.request('GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs', {
+        owner,
+        repo,
+        workflow_id: workflowId,
+        per_page: perPage,
+    });
+    return response.data.workflow_runs;
+};
+const fetchCurrentWorkflowRunDetails = async (token, currentRunId) => {
+    const octokit = (0,github.getOctokit)(token);
+    const { owner, repo } = github.context.repo;
+    const response = await octokit.request('GET /repos/{owner}/{repo}/actions/runs/{run_id}', {
+        owner,
+        repo,
+        run_id: currentRunId,
+    });
+    return response.data;
+};
+const hasPreviousRunningWorkflows = (workflowRuns, currentWorkflowRunDetails) => {
+    return (workflowRuns
+        .filter((run) => run.status &&
+        [
+            'in_progress',
+            'queued',
+            'waiting',
+            'pending',
+            'action_required',
+            'requested',
+        ].includes(run.status))
+        .filter((run) => run.id !== currentWorkflowRunDetails.id)
+        .filter((run) => new Date(run.created_at).getTime() <
+        new Date(currentWorkflowRunDetails.created_at).getTime()).length > 0);
+};
+
+;// CONCATENATED MODULE: ./src/action.ts
+
+
+
+const action = async () => {
     try {
-        const token = (0, core_1.getInput)('github-token', { required: true });
-        const workflowId = (0, core_1.getInput)('workflow-id', { required: true });
-        const perPage = parseInt((0, core_1.getInput)('results-per-page', { required: true }));
-        const octokit = (0, github_1.getOctokit)(token);
-        const { owner, repo } = github_1.context.repo;
-        const currentRunId = github_1.context.runId;
-        const response = await octokit.request('GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs', {
-            owner,
-            repo,
-            workflow_id: workflowId,
-            per_page: perPage,
-        });
-        const responseCurrent = await octokit.request('GET /repos/{owner}/{repo}/actions/runs/{run_id}', {
-            owner,
-            repo,
-            run_id: currentRunId,
-        });
-        const previous_workflows = response.data.workflow_runs
-            .filter((run) => run.status &&
-            [
-                'in_progress',
-                'queued',
-                'waiting',
-                'pending',
-                'action_required',
-                'requested',
-            ].includes(run.status))
-            .filter((run) => run.id !== currentRunId)
-            .filter((run) => new Date(run.created_at).getTime() <
-            new Date(responseCurrent.data.created_at).getTime());
-        const hasPreviousRunningWorkflow = previous_workflows.length > 0 ? 'true' : 'false';
-        (0, core_1.setOutput)('has-previous-running-workflow', hasPreviousRunningWorkflow);
+        const token = (0,core.getInput)('github-token', { required: true });
+        const workflowId = (0,core.getInput)('workflow-id', { required: true });
+        const perPage = parseInt((0,core.getInput)('results-per-page', { required: true }));
+        const workflowRuns = await fetchWorkflowRuns(token, workflowId, perPage);
+        const currentRunId = github.context.runId;
+        const currentWorkflowRunDetails = await fetchCurrentWorkflowRunDetails(token, currentRunId);
+        const hasPreviousRunningWorkflow = hasPreviousRunningWorkflows(workflowRuns, currentWorkflowRunDetails);
+        (0,core.setOutput)('has-previous-running-workflow', hasPreviousRunningWorkflow ? 'true' : 'false');
     }
     catch (error) {
-        (0, core_1.setFailed)(`Action failed with error: ${error}`);
+        (0,core.setFailed)(`Action failed with error: ${error.message}`);
     }
-}
+};
+
+;// CONCATENATED MODULE: ./src/index.ts
+
+
+const run = async () => {
+    try {
+        await action();
+    }
+    catch (error) {
+        (0,core.setFailed)(error.message);
+    }
+};
 run();
 
 })();
