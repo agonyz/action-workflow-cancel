@@ -30,7 +30,7 @@ async function run() {
       },
     );
 
-    const waiting_for = response.data.workflow_runs
+    const previous_workflows = response.data.workflow_runs
       .filter(
         (run) =>
           run.status &&
@@ -50,8 +50,9 @@ async function run() {
           new Date(responseCurrent.data.created_at).getTime(),
       );
 
-    const hasAlreadyRunningJob = waiting_for.length > 0 ? 'true' : 'false';
-    setOutput('has-already-running-job', hasAlreadyRunningJob);
+    const hasPreviousRunningWorkflow =
+      previous_workflows.length > 0 ? 'true' : 'false';
+    setOutput('has-previous-running-workflow', hasPreviousRunningWorkflow);
   } catch (error) {
     setFailed(`Action failed with error: ${error}`);
   }

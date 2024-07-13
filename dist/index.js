@@ -31103,7 +31103,7 @@ async function run() {
             repo,
             run_id: currentRunId,
         });
-        const waiting_for = response.data.workflow_runs
+        const previous_workflows = response.data.workflow_runs
             .filter((run) => run.status &&
             [
                 'in_progress',
@@ -31116,8 +31116,8 @@ async function run() {
             .filter((run) => run.id !== currentRunId)
             .filter((run) => new Date(run.created_at).getTime() <
             new Date(responseCurrent.data.created_at).getTime());
-        const hasAlreadyRunningJob = waiting_for.length > 0 ? 'true' : 'false';
-        (0, core_1.setOutput)('has-already-running-job', hasAlreadyRunningJob);
+        const hasPreviousRunningWorkflow = previous_workflows.length > 0 ? 'true' : 'false';
+        (0, core_1.setOutput)('has-previous-running-workflow', hasPreviousRunningWorkflow);
     }
     catch (error) {
         (0, core_1.setFailed)(`Action failed with error: ${error}`);
